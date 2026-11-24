@@ -44,6 +44,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             if(!executeNonQuery($sql))
                 return;
 
+            notifyTapListChanged();
+
             echo "Weight recorded successfully";
         }
         else
@@ -59,6 +61,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 }
 else {
     echo "No data posted with HTTP POST.";
+}
+
+// Tell the reactberrypint websocket service that tap data changed so it can
+// push fresh data to the displays right away. UDP is fire-and-forget: if the
+// service isn't running this silently does nothing, and it never delays or
+// fails the scale's request.
+function notifyTapListChanged(){
+    $sock = @fsockopen("udp://127.0.0.1", 8081, $errno, $errstr, 0.1);
+    if($sock){
+        @fwrite($sock, "changed");
+        fclose($sock);
+    }
 }
 
 function executeNonQuery($sql){
